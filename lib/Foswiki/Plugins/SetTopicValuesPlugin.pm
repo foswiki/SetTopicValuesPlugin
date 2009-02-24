@@ -20,6 +20,9 @@ use strict;
 require Foswiki::Func;    # The plugins API
 require Foswiki::Plugins; # For the API version
 
+use Error qw( :try );
+
+
 our $VERSION = '$Rev: 1340 $';
 our $RELEASE = '$Date: 2008-12-15 04:49:56 +1100 (Mon, 15 Dec 2008) $';
 our $SHORTDESCRIPTION = 'Set addressible sub-elements of topics';
@@ -44,7 +47,7 @@ sub initPlugin {
 sub afterSaveHandler {
     #prevent nested calls
     return if (defined($beforeSaveHandlerONCE));
-    #$beforeSaveHandlerONCE = 1;
+    $beforeSaveHandlerONCE = 1;
     
 #print STDERR "afterSaveHandler - (".$_[2].".".$_[1].") ".$_[3]->getEmbeddedStoreForm()."\n";
     
@@ -81,15 +84,20 @@ sub afterSaveHandler {
             if (Foswiki::Func::topicExists($sWeb, $sTopic)) {
                 my( $sMeta, $sText ) = Foswiki::Func::readTopic($sWeb, $sTopic);
                 $type =~ s/S$//;
-                my $ma = $sMeta->get( $type, $addr );
-#print STDERR "test $ma";
-                $ma->{value} = $value;
-                $sMeta->putKeyed($type, $ma );
-                Foswiki::Func::saveTopic($sWeb, $sTopic, $sMeta, $sText);
+
+                $sMeta->putKeyed($type, { name=>$addr, value=>$value} );
+                try {
+#TODO: don't save once per setting - should cache..
+                    Foswiki::Func::saveTopic($sWeb, $sTopic, $sMeta, $sText);
+#                } catch Foswiki::OopsException {
+#                } catch Foswiki::AccessControlException with  {
+                } catch  Error::Simple with {
+                    my $e = shift;
+                    print STDERR "ERROR: $e\n";
+                }
             }
         }
     }
-    
 }
 
 1;
