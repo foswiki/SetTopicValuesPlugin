@@ -1,0 +1,4 @@
+# Release manifest for SetTopicValuesPlugin
+data/System/SetTopicValuesPlugin.txt 0644 Documentation
+lib/Foswiki/Plugins/SetTopicValuesPlugin.pm 0644 Perl module
+
