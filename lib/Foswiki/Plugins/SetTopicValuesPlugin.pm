@@ -46,12 +46,12 @@ sub afterSaveHandler {
     return if (defined($beforeSaveHandlerONCE));
     #$beforeSaveHandlerONCE = 1;
     
-print STDERR "afterSaveHandler - (".$_[2].".".$_[1].") ".$_[3]->getEmbeddedStoreForm()."\n";
+#print STDERR "afterSaveHandler - (".$_[2].".".$_[1].") ".$_[3]->getEmbeddedStoreForm()."\n";
     
     # do not uncomment, use $_[0], $_[1]... instead
     ### my ( $text, $topic, $web, $meta ) = @_;
     Foswiki::Func::writeDebug( "- SetTopicValuesPlugin::beforeSaveHandler( $_[2].$_[1] )" ) if $debug;
-    my $cgi = TWiki::Func::getCgiQuery();
+    my $cgi = Foswiki::Func::getCgiQuery();
     
 #TODO: we should be transactional by default - test that we can write to all topics, and take out leases
     
@@ -76,16 +76,16 @@ print STDERR "afterSaveHandler - (".$_[2].".".$_[1].") ".$_[3]->getEmbeddedStore
             }
             
             my $value = $cgi->param($key);
-print STDERR "Set ($webTopic).($type)\($addr) = ($value)\n";
-            my ($sWeb, $sTopic) = TWiki::Func::normalizeWebTopicName($_[2], $webTopic);
-            if (TWiki::Func::topicExists($sWeb, $sTopic)) {
-                my( $sMeta, $sText ) = TWiki::Func::readTopic($sWeb, $sTopic);
+#print STDERR "Set ($webTopic).($type)\($addr) = ($value)\n";
+            my ($sWeb, $sTopic) = Foswiki::Func::normalizeWebTopicName($_[2], $webTopic);
+            if (Foswiki::Func::topicExists($sWeb, $sTopic)) {
+                my( $sMeta, $sText ) = Foswiki::Func::readTopic($sWeb, $sTopic);
                 $type =~ s/S$//;
                 my $ma = $sMeta->get( $type, $addr );
-print STDERR "test $ma";
+#print STDERR "test $ma";
                 $ma->{value} = $value;
                 $sMeta->putKeyed($type, $ma );
-                TWiki::Func::saveTopic($sWeb, $sTopic, $sMeta, $sText);
+                Foswiki::Func::saveTopic($sWeb, $sTopic, $sMeta, $sText);
             }
         }
     }
