@@ -35,6 +35,50 @@ sub NOtear_down {
     $this->SUPER::tear_down();
 }
 
+sub saveValues {
+    my $this = shift;
+    my $topic = shift;
+    my $text = shift;
+    my $settingRef = shift;
+    
+    my $saveHash =         {
+            action              => ['save'],
+            topic => [ $this->{test_web} . '.'.$topic ],
+            %{$settingRef}
+        };
+    if (defined($text)) {
+        $saveHash->{text} = $text;
+    }
+
+    my $query = new Unit::Request(
+        $saveHash
+    );
+    $this->{twiki}->finish();
+    $this->{twiki} = new Foswiki( $this->{test_user_login}, $query );
+    $this->capture( \&Foswiki::UI::Save::save, $this->{twiki} );
+    my ( $meta, $sText ) = Foswiki::Func::readTopic($this->{test_web}, $topic );
+    if (defined($text)) {
+        $this->assert_matches( $text, $sText );
+    }
+    $this->assert_null( $meta->get('FORM') );
+    foreach my $setKey (keys(%{$settingRef})) {
+        my $type = 'PREFERENCE';
+        my $key = $setKey;
+        $key =~ s/^[Ss]et\+//;
+
+        my $ma = $meta->get($type, $key );
+        $this->assert_not_null($ma);
+        $this->assert_equals( $settingRef->{$setKey}, $ma->{value} );
+
+        if ($type eq 'PREFERENCE') {
+            #TODO: need a new session to force a reload of the preferences :(
+            #my $pref = Foswiki::Func::getPreferencesValue($key);
+            #$this->assert_equals( $settingRef->{$setKey}, $pref );
+#print STDERR "$key = $pref\n";
+        }
+    }
+}
+
 # ----------------------------------------------------------------------
 # Purpose:  installed and enabled test
 # Verifies: that its worth testing further
@@ -52,33 +96,15 @@ sub test_SetTopicValuesPluginEnabled {
 # Verifies: ?Set+SOMEPREF=something works
 sub test_set_new_preference_on_new_topic {
     my $this = shift;
+    $this->saveValues(
+            'DeleteTestSaveScriptTopic',
+            "CORRECT",
+            {
+                   'Set+NEWPREFERENCE' => 'someValue'
+            }
+           );
 
-    my $text = "CORRECT";
-
-    my $query = new Unit::Request(
-        {
-            text                => [$text],
-            'Set+NEWPREFERENCE' => 'someValue',
-            action              => ['save'],
-            topic => [ $this->{test_web} . '.DeleteTestSaveScriptTopic' ]
-        }
-    );
-    $this->{twiki}->finish();
-    $this->{twiki} = new Foswiki( $this->{test_user_login}, $query );
-    $this->capture( \&Foswiki::UI::Save::save, $this->{twiki} );
-    my ( $meta, $sText ) =
-      $this->{twiki}->{store}
-      ->readTopic( undef, $this->{test_web}, 'DeleteTestSaveScriptTopic' );
-    $this->assert_matches( $text, $sText );
-    $this->assert_null( $meta->get('FORM') );
-
-    my $ma = $meta->get( 'PREFERENCE', 'NEWPREFERENCE' );
-    $this->assert_not_null($ma);
-    $this->assert_equals( 'someValue', $ma->{value} );
-
-    #TODO: need a new session to force a reload of the preferences :(
-#    my $pref = Foswiki::Func::getPreferencesValue("NEWPREFERENCE");
-#    $this->assert_equals( 'someValue', $pref );
+print STDERR "DONE\n";
 }
 
 # ----------------------------------------------------------------------
@@ -87,32 +113,15 @@ sub test_set_new_preference_on_new_topic {
 sub test_set_preference_on_new_topic {
     my $this = shift;
 
-    my $text = "CORRECT\n   * Set NEWPREFERENCE= wrongValue\n bah";
+    $this->saveValues(
+            'DeleteTestSaveScriptTopic',
+            "CORRECT\n   * Set NEWPREFERENCE= wrongValue\n bah",
+            {
+                   'Set+NEWPREFERENCE' => 'someValue'
+            }
+           );
 
-    my $query = new Unit::Request(
-        {
-            text                => [$text],
-            'Set+NEWPREFERENCE' => 'someValue',
-            action              => ['save'],
-            topic => [ $this->{test_web} . '.DeleteTestSaveScriptTopic' ]
-        }
-    );
-    $this->{twiki}->finish();
-    $this->{twiki} = new Foswiki( $this->{test_user_login}, $query );
-    $this->capture( \&Foswiki::UI::Save::save, $this->{twiki} );
-    my ( $meta, $sText ) =
-      $this->{twiki}->{store}
-      ->readTopic( undef, $this->{test_web}, 'DeleteTestSaveScriptTopic' );
-    $this->assert_matches( $text, $sText );
-    $this->assert_null( $meta->get('FORM') );
-
-    my $ma = $meta->get( 'PREFERENCE', 'NEWPREFERENCE' );
-    $this->assert_not_null($ma);
-    $this->assert_equals( 'someValue', $ma->{value} );
-
-    #TODO: need a new session to force a reload of the preferences :(
-    #my $pref = Foswiki::Func::getPreferencesValue("NEWPREFERENCE");
-    #$this->assert_equals( 'someValue', $pref );
+print STDERR "DONE\n";
 }
 
 # ----------------------------------------------------------------------
@@ -121,37 +130,23 @@ sub test_set_preference_on_new_topic {
 sub test_set_new_preference_on_existing_topic {
     my $this = shift;
 
+    my $text = "CORRECT\n   * Set NEWPREFERENCE= wrongValue\n bah";
+
     my $oopsUrl =
       Foswiki::Func::saveTopicText( $this->{test_web},
-        'DeleteTestSaveScriptTopic', 'cracker' );
+        'DeleteTestSaveScriptTopic', $text);
     $this->assert_matches( '', $oopsUrl );
 
-    my $text = "CORRECT";
+    $this->saveValues(
+            'DeleteTestSaveScriptTopic',
+            undef,
+            {
+                   'Set+NEWPREFERENCE' => 'someValue'
+            }
+           );
 
-    my $query = new Unit::Request(
-        {
-            text                => [$text],
-            'Set+NEWPREFERENCE' => 'someValue',
-            action              => ['save'],
-            topic => [ $this->{test_web} . '.DeleteTestSaveScriptTopic' ]
-        }
-    );
-    $this->{twiki}->finish();
-    $this->{twiki} = new Foswiki( $this->{test_user_login}, $query );
-    $this->capture( \&Foswiki::UI::Save::save, $this->{twiki} );
-    my ( $meta, $sText ) =
-      $this->{twiki}->{store}
-      ->readTopic( undef, $this->{test_web}, 'DeleteTestSaveScriptTopic' );
-    $this->assert_matches( $text, $sText );
-    $this->assert_null( $meta->get('FORM') );
+print STDERR "DONE\n";
 
-    my $ma = $meta->get( 'PREFERENCE', 'NEWPREFERENCE' );
-    $this->assert_not_null($ma);
-    $this->assert_equals( 'someValue', $ma->{value} );
-
-    #TODO: need a new session to force a reload of the preferences :(
-#    my $pref = Foswiki::Func::getPreferencesValue("NEWPREFERENCE");
-#    $this->assert_equals( 'someValue', $pref );
 }
 
 1;

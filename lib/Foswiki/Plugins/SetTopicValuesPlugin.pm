@@ -79,7 +79,7 @@ sub afterSaveHandler {
             }
             
             my $value = $cgi->param($key);
-#print STDERR "Set ($webTopic).($type)\($addr) = ($value)\n";
+#print STDERR "Set ($webTopic)($type)[$addr] = ($value)\n";
             my ($sWeb, $sTopic) = Foswiki::Func::normalizeWebTopicName($_[2], $webTopic);
             if (Foswiki::Func::topicExists($sWeb, $sTopic)) {
                 my( $sMeta, $sText ) = Foswiki::Func::readTopic($sWeb, $sTopic);
