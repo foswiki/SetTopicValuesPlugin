@@ -2,3 +2,5 @@
 data/System/SetTopicValuesPlugin.txt 0644 Documentation
 lib/Foswiki/Plugins/SetTopicValuesPlugin.pm 0644 Perl module
 
+test/unit/SetTopicValuesPlugin/SetTopicValuesPluginSuite.pm
+test/unit/SetTopicValuesPlugin/SetTopicValuesPluginTests.pm

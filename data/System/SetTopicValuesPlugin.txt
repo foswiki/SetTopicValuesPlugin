@@ -8,23 +8,38 @@ One line description, required for extensions repository catalog.
 %TOC%
 
 ---++ Usage
+This Plugin adds the ability to use the Topic Object model addressing introduced in QuerySearch to modify values.
+
+In essence, this plugin adds =Set+= and =Unset+= urlparams to the [[%SCRIPTURL{view}%/System/CommandAndCGIScripts#save][=save=]] Script.
+
+---+++ =save=
+The =save= script performs a range of save-related functions, as selected by the =action= parameter.
+
+| *Parameter* | *Description* | *Default* |
+| =set+SomeTOM=someValue= |  | |
+| =unset+SomeTOM= |  | |
 
 ---++ Examples
+   * =http://somewhere.com/save/Sandbox/TestTopic5?set+VIEW_TEMPLATE=SomeValue=
+   * =http://somewhere.com/save?set+Sandbox.TestTopic5/preferences[VIEW_TEMPLATE]=SomeValue=
+      * adds a META PREFERENCE (or potentially edits an existing in-text Setting?) 
+   * =http://somewhere.com/save?unset+Sandbox.TestTopic5/preferences[VIEW_TEMPLATE]=
+
+---++ Technical details
+So that URL settings can be used to set the values on a topic that is being created, it uses the =afterSaveHandler=.
+
+To simplify the implementation, PREFERENCES are all stored in the META::PREFERENCES, not inline in the topic.
 
 ---++ Installation Instructions
 
 %$INSTALL_INSTRUCTIONS%
 
----++ Info
-
-Many thanks to the following sponsors for supporting this work:
-   * Acknowledge any sponsors here
-
-|  Author(s): | |
-|  Copyright: | &copy; |
-|  License: | [[http://www.gnu.org/licenses/gpl.html][GPL (Gnu General Public License)]] |
+|  Author(s): | Foswiki:Main.SvenDowideit |
+|  Copyright: | &copy; 2008-2009 SvenDowideit@fosiki.com - [[http://fosiki.com][fosiki]] |
+|  License: | [[http://www.gnu.org/licenses/gpl.html][GPL 3(Gnu General Public License)]] |
 |  Version: | %$VERSION% |
 |  Change History: | <!-- versions below in reverse order -->&nbsp; |
+|  Feb 2009: | initial public release |
 |  Dependencies: | %$DEPENDENCIES% |
 |  Home page: | http://foswiki.org/bin/view/Extensions/SetTopicValuesPlugin |
 
