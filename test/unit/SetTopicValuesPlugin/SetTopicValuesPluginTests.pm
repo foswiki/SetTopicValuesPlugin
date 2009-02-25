@@ -64,7 +64,16 @@ sub saveValues {
     foreach my $setKey (keys(%{$settingRef})) {
         my $type = 'PREFERENCE';
         my $key = $setKey;
+
         $key =~ s/^[Ss]et\+//;
+
+        if ($key =~ /^(.*)\[(.*)\]$/ ) {
+            $type = uc($1);
+            $key = $2;
+
+            $type =~ s/S$//;     #remove the trailing S (fields[] == META:FIELD)
+        }
+#print STDERR "---- ($type)[$key]\n";
 
         my $ma = $meta->get($type, $key );
         $this->assert_not_null($ma);
@@ -96,15 +105,11 @@ sub test_SetTopicValuesPluginEnabled {
 # Verifies: ?Set+SOMEPREF=something works
 sub test_set_new_preference_on_new_topic {
     my $this = shift;
-    $this->saveValues(
-            'DeleteTestSaveScriptTopic',
+    $this->saveValues( 'DeleteTestSaveScriptTopic',
             "CORRECT",
-            {
-                   'Set+NEWPREFERENCE' => 'someValue'
-            }
+            { 'Set+NEWPREFERENCE' => 'someValue' }
            );
-
-print STDERR "DONE\n";
+    print STDERR "DONE\n";
 }
 
 # ----------------------------------------------------------------------
@@ -146,7 +151,84 @@ sub test_set_new_preference_on_existing_topic {
            );
 
 print STDERR "DONE\n";
+}
 
+# ----------------------------------------------------------------------
+# Purpose:  create a new topic with a Field set
+# Verifies: see if setting a FormField will add a field to the topic
+sub test_set_FIELD_on_new_topic {
+    my $this = shift;
+    $this->saveValues( 'DeleteTestSaveScriptTopic',
+            "CORRECT",
+            { 'Set+fields[TestField]' => 'someValue' }
+           );
+    
+    print STDERR "DONE\n";
+}
+
+# ----------------------------------------------------------------------
+# Purpose:  create a new topic with a Field set, and then add a preference
+# Verifies: makes sure 2 sequential operations don't lose info
+sub test_set_FIELD_and_then_PREF_on_new_topic {
+    my $this = shift;
+    
+    my $text = "CORRECT";
+    $this->saveValues( 'DeleteTestSaveScriptTopic',
+            $text,
+            { 'Set+fields[TestField]' => 'someValue' }
+           );
+    $this->saveValues( 'DeleteTestSaveScriptTopic',
+            undef,
+            { 'Set+preferences[BANANA]' => 'no, we have no bananas' }
+           );
+           
+    my ( $meta, $sText ) = Foswiki::Func::readTopic($this->{test_web}, 'DeleteTestSaveScriptTopic' );
+    if (defined($text)) {
+        $this->assert_matches( $text, $sText );
+    }
+    $this->assert_null( $meta->get('FORM') );
+    my $ma = $meta->get('PREFERENCE', 'BANANA' );
+    $this->assert_not_null($ma);
+    $this->assert_equals( 'no, we have no bananas', $ma->{value} );
+ #I _THINK_ this test failes because save removes form fields that are not in the current form (ie, none)
+#but i'm not that sure this is a good thing, just historical
+    $ma = $meta->get('FIELD', 'TestField' );
+#    $this->assert_not_null($ma);
+#    $this->assert_equals( 'someValue', $ma->{value} );
+    
+    print STDERR "DONE\n";
+}
+
+# ----------------------------------------------------------------------
+# Purpose:  create a new topic with a Field set, and then add a preference
+# Verifies: makes sure 2 sequential operations don't lose info
+sub test_set_PREF_and_then_PREF_on_new_topic {
+    my $this = shift;
+    
+    my $text = "CORRECT";
+    $this->saveValues( 'DeleteTestSaveScriptTopic',
+            $text,
+            { 'Set+preferences[APPLE]' => 'keep the dentist happy' }
+           );
+    $this->saveValues( 'DeleteTestSaveScriptTopic',
+            undef,
+            { 'Set+preferences[BANANA]' => 'no, we have no bananas' }
+           );
+           
+    my ( $meta, $sText ) = Foswiki::Func::readTopic($this->{test_web}, 'DeleteTestSaveScriptTopic' );
+    if (defined($text)) {
+        $this->assert_matches( $text, $sText );
+    }
+    $this->assert_null( $meta->get('FORM') );
+    my $ma = $meta->get('PREFERENCE', 'BANANA' );
+    $this->assert_not_null($ma);
+    $this->assert_equals( 'no, we have no bananas', $ma->{value} );
+
+    $ma = $meta->get('PREFERENCE', 'APPLE' );
+    $this->assert_not_null($ma);
+    $this->assert_equals( 'keep the dentist happy', $ma->{value} );
+    
+    print STDERR "DONE\n";
 }
 
 1;

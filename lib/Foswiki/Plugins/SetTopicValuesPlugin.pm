@@ -49,11 +49,11 @@ sub afterSaveHandler {
     return if (defined($beforeSaveHandlerONCE));
     $beforeSaveHandlerONCE = 1;
     
-#print STDERR "afterSaveHandler - (".$_[2].".".$_[1].") ".$_[3]->getEmbeddedStoreForm()."\n";
+#print STDERR "afterSaveHandler - (".$_[2].".".$_[1].") ";#.$_[3]->getEmbeddedStoreForm()."\n";
     
     # do not uncomment, use $_[0], $_[1]... instead
     ### my ( $text, $topic, $web, $meta ) = @_;
-    Foswiki::Func::writeDebug( "- SetTopicValuesPlugin::beforeSaveHandler( $_[2].$_[1] )" ) if $debug;
+    Foswiki::Func::writeDebug( "- SetTopicValuesPlugin::afterSaveHandler( $_[2].$_[1] )" ) if $debug;
     my $cgi = Foswiki::Func::getCgiQuery();
     
 #TODO: we should be transactional by default - test that we can write to all topics, and take out leases
@@ -64,8 +64,11 @@ sub afterSaveHandler {
     #http://quad/airdrilling/bin/save/Sandbox/TestTopic55?set+Sandbox.TestTopic5Edit:fields[EditDocumentState]=SomeValue
     my @paramKeys = $cgi->param();
     foreach my $key (@paramKeys) {
-        if ($key =~ /^[Ss]et\+(.*)$/ ) {
+#print STDERR "====== $key\n";
+        if ($key =~ /^[Ss]et[\+ ](.*)$/ ) {
             my $addr = $1;
+            
+            #TODO: this code is going to be replaced with the nodeParser ideas from my RestPlugin
             
             my $webTopic = $_[2].'.'.$_[1];
             if ($addr =~ /^(.*):(.*)$/ ) {
@@ -79,8 +82,8 @@ sub afterSaveHandler {
             }
             
             my $value = $cgi->param($key);
-#print STDERR "Set ($webTopic)($type)[$addr] = ($value)\n";
             my ($sWeb, $sTopic) = Foswiki::Func::normalizeWebTopicName($_[2], $webTopic);
+#print STDERR "Set ($sWeb.$sTopic)($type)[$addr] = ($value)\n";
             if (Foswiki::Func::topicExists($sWeb, $sTopic)) {
                 my( $sMeta, $sText ) = Foswiki::Func::readTopic($sWeb, $sTopic);
                 $type =~ s/S$//;
