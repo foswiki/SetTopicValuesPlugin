@@ -65,8 +65,9 @@ sub afterSaveHandler {
     my @paramKeys = $cgi->param();
     foreach my $key (@paramKeys) {
 #print STDERR "====== $key\n";
-        if ($key =~ /^[Ss]et[\+ ](.*)$/ ) {
-            my $addr = $1;
+        if ($key =~ /^([Uu]n)?[Ss]et[\+ ](.*)$/ ) {
+            my $unset = lc($1);
+            my $addr = $2;
             
             #TODO: this code is going to be replaced with the nodeParser ideas from my RestPlugin
             
@@ -82,13 +83,20 @@ sub afterSaveHandler {
             }
             
             my $value = $cgi->param($key);
+            #TODO: this is to prevent Scripting attacks, but also preventsvalues being set to %TML%, which is unfortuanate.
+            $value = Foswiki::entityEncode($value);
             my ($sWeb, $sTopic) = Foswiki::Func::normalizeWebTopicName($_[2], $webTopic);
-#print STDERR "Set ($sWeb.$sTopic)($type)[$addr] = ($value)\n";
+print STDERR "Set ($sWeb.$sTopic)($type)[$addr] = ($value)\n" if $debug;
             if (Foswiki::Func::topicExists($sWeb, $sTopic)) {
                 my( $sMeta, $sText ) = Foswiki::Func::readTopic($sWeb, $sTopic);
                 $type =~ s/S$//;
 
-                $sMeta->putKeyed($type, { name=>$addr, value=>$value} );
+                if ($unset eq 'un') {
+                    $sMeta->remove($type, $addr);
+                } else {
+                    $sMeta->putKeyed($type, { name=>$addr, value=>$value} );
+                }
+
                 try {
 #TODO: don't save once per setting - should cache..
                     Foswiki::Func::saveTopic($sWeb, $sTopic, $sMeta, $sText);

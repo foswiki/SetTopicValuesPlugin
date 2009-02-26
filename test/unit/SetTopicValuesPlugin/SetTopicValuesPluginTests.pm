@@ -65,7 +65,8 @@ sub saveValues {
         my $type = 'PREFERENCE';
         my $key = $setKey;
 
-        $key =~ s/^[Ss]et\+//;
+        $key =~ s/^([Uu]n)?[Ss]et\+(.*)$/$2/;
+        my $unset = lc($1);
 
         if ($key =~ /^(.*)\[(.*)\]$/ ) {
             $type = uc($1);
@@ -73,11 +74,15 @@ sub saveValues {
 
             $type =~ s/S$//;     #remove the trailing S (fields[] == META:FIELD)
         }
-#print STDERR "---- ($type)[$key]\n";
+#print STDERR "----$unset ($type)[$key]\n";
 
         my $ma = $meta->get($type, $key );
-        $this->assert_not_null($ma);
-        $this->assert_equals( $settingRef->{$setKey}, $ma->{value} );
+        if ($unset eq 'un') {
+            $this->assert_null($ma);
+        } else {
+            $this->assert_not_null($ma);
+            $this->assert_equals( $settingRef->{$setKey}, $ma->{value} );
+        }
 
         if ($type eq 'PREFERENCE') {
             #TODO: need a new session to force a reload of the preferences :(
@@ -227,6 +232,66 @@ sub test_set_PREF_and_then_PREF_on_new_topic {
     $ma = $meta->get('PREFERENCE', 'APPLE' );
     $this->assert_not_null($ma);
     $this->assert_equals( 'keep the dentist happy', $ma->{value} );
+    
+    print STDERR "DONE\n";
+}
+
+# ----------------------------------------------------------------------
+# Purpose:  create a new topic with a Field set, and then add a preference
+# Verifies: set more than one item in the same topic
+sub test_set_two_PREF_on_new_topic {
+    my $this = shift;
+    
+    my $text = "CORRECT";
+    $this->saveValues( 'DeleteTestSaveScriptTopic',
+            $text,
+            { 'Set+preferences[APPLE]' => 'keep the dentist happy',
+                'Set+preferences[BANANA]' => 'no, we have no bananas'  }
+           );
+           
+    my ( $meta, $sText ) = Foswiki::Func::readTopic($this->{test_web}, 'DeleteTestSaveScriptTopic' );
+    if (defined($text)) {
+        $this->assert_matches( $text, $sText );
+    }
+    $this->assert_null( $meta->get('FORM') );
+    my $ma = $meta->get('PREFERENCE', 'BANANA' );
+    $this->assert_not_null($ma);
+    $this->assert_equals( 'no, we have no bananas', $ma->{value} );
+
+    $ma = $meta->get('PREFERENCE', 'APPLE' );
+    $this->assert_not_null($ma);
+    $this->assert_equals( 'keep the dentist happy', $ma->{value} );
+    
+    print STDERR "DONE\n";
+}
+# ----------------------------------------------------------------------
+# Purpose:  create a new topic with a Field set, and then add a preference
+# Verifies: test unsetting a value
+sub test_unset_on_new_topic {
+    my $this = shift;
+    
+    my $text = "CORRECT";
+    $this->saveValues( 'DeleteTestSaveScriptTopic',
+            $text,
+            { 'Set+preferences[APPLE]' => 'keep the dentist happy',
+                'Set+preferences[BANANA]' => 'no, we have no bananas'  }
+           );
+    $this->saveValues( 'DeleteTestSaveScriptTopic',
+            undef,
+            { 'UnSet+preferences[APPLE]' => 'keep the dentist happy'  }
+           );
+           
+    my ( $meta, $sText ) = Foswiki::Func::readTopic($this->{test_web}, 'DeleteTestSaveScriptTopic' );
+    if (defined($text)) {
+        $this->assert_matches( $text, $sText );
+    }
+    $this->assert_null( $meta->get('FORM') );
+    my $ma = $meta->get('PREFERENCE', 'BANANA' );
+    $this->assert_not_null($ma);
+    $this->assert_equals( 'no, we have no bananas', $ma->{value} );
+
+    $ma = $meta->get('PREFERENCE', 'APPLE' );
+    $this->assert_null($ma);
     
     print STDERR "DONE\n";
 }
